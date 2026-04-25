@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Color Ball Pop</title>
-    <link rel="stylesheet" href="styles.css?v=5" />
+    <link rel="stylesheet" href="styles.css?v=6" />
   </head>
   <body>
     <main class="app" aria-live="polite">
@@ -36,6 +36,14 @@
         </div>
         <div class="target-ball" id="targetBall" aria-hidden="true"></div>
         <p id="targetText">Find the matching ball</p>
+      </section>
+
+      <section class="cup-strip hidden" id="cupStrip" aria-label="Tournament scores">
+        <div>
+          <strong id="cupTurn">Player 1's turn</strong>
+          <span id="cupRound">Round 1 of 5</span>
+        </div>
+        <div class="cup-scores" id="cupScores"></div>
       </section>
 
       <section class="play-area" id="playArea">
@@ -78,6 +86,22 @@
           Motion
           <input id="motionToggle" type="checkbox" checked />
         </label>
+        <section class="tournament-panel" aria-label="Tournament">
+          <h3>Color Cup</h3>
+          <div class="tournament-actions">
+            <label>
+              Turns each
+              <select id="tournamentTurns">
+                <option value="3">3</option>
+                <option value="5" selected>5</option>
+                <option value="10">10</option>
+              </select>
+            </label>
+            <button class="start-button" id="startTournament" type="button">Start tournament</button>
+            <button class="reset-button hidden" id="endTournament" type="button">End tournament</button>
+          </div>
+          <p class="hint">Tournament uses Find Color only. Correct is +1. Wrong is -0.5.</p>
+        </section>
         <section class="players-panel" aria-label="Players and scores">
           <h3>Players</h3>
           <div class="player-tabs" id="playerTabs"></div>
@@ -89,6 +113,14 @@
       </div>
     </section>
 
-    <script src="script.js?v=5"></script>
+    <section class="podium-panel hidden" id="podiumPanel" aria-label="Tournament results">
+      <div class="podium-card">
+        <h2>Color Cup</h2>
+        <div class="podium" id="podium"></div>
+        <button class="start-button" id="closePodium" type="button">Play again</button>
+      </div>
+    </section>
+
+    <script src="script.js?v=6"></script>
   </body>
 </html>
