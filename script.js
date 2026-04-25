@@ -64,13 +64,30 @@ let locked = false;
 let audioContext;
 let preferredVoice;
 
-const positions = [
-  { x: 28, y: 35, size: 170 },
-  { x: 68, y: 38, size: 168 },
-  { x: 35, y: 68, size: 160 },
-  { x: 72, y: 70, size: 158 },
-  { x: 50, y: 52, size: 150 },
-];
+const positionsByCount = {
+  2: [
+    { x: 34, y: 48, size: 178 },
+    { x: 68, y: 48, size: 176 },
+  ],
+  3: [
+    { x: 28, y: 42, size: 166 },
+    { x: 72, y: 42, size: 166 },
+    { x: 50, y: 72, size: 162 },
+  ],
+  4: [
+    { x: 28, y: 38, size: 158 },
+    { x: 72, y: 38, size: 158 },
+    { x: 28, y: 72, size: 154 },
+    { x: 72, y: 72, size: 154 },
+  ],
+  5: [
+    { x: 24, y: 38, size: 146 },
+    { x: 76, y: 38, size: 146 },
+    { x: 50, y: 54, size: 150 },
+    { x: 28, y: 76, size: 142 },
+    { x: 72, y: 76, size: 142 },
+  ],
+};
 
 function shuffle(items) {
   return [...items].sort(() => Math.random() - 0.5);
@@ -200,6 +217,7 @@ function pickChoices() {
 function renderBalls() {
   ballStage.innerHTML = "";
   ballStage.classList.toggle("motion-on", motionToggle.checked);
+  const positions = positionsByCount[choices.length] || positionsByCount[3];
 
   choices.forEach((color, index) => {
     const position = positions[index];
@@ -218,6 +236,25 @@ function renderBalls() {
     ball.addEventListener("pointerdown", (event) => startDrag(event, color, ball, index));
     ballStage.appendChild(ball);
   });
+}
+
+function renderOneBall(color, index) {
+  const positions = positionsByCount[choices.length] || positionsByCount[3];
+  const position = positions[index] || positions[0];
+  const ball = document.createElement("button");
+  ball.type = "button";
+  ball.className = "ball";
+  ball.dataset.color = color.name;
+  ball.setAttribute("aria-label", `${color.name} ball`);
+  ball.style.setProperty("--ball-color", `linear-gradient(135deg, ${color.bright}, ${color.value})`);
+  ball.style.setProperty("--x", `${position.x}%`);
+  ball.style.setProperty("--y", `${position.y}%`);
+  ball.style.setProperty("--size", `clamp(128px, ${position.size / 7}vw, ${position.size}px)`);
+  ball.style.setProperty("--speed", `${2.4 + index * 0.35}s`);
+  ball.innerHTML = `<span class="ball-label">${mode === "free" ? color.name : ""}</span>`;
+  ball.addEventListener("click", () => handleBallTap(color, ball, index));
+  ball.addEventListener("pointerdown", (event) => startDrag(event, color, ball, index));
+  ballStage.appendChild(ball);
 }
 
 function renderBaskets() {
@@ -330,9 +367,14 @@ function handleBallTap(color, ball, colorIndex) {
 
   if (mode === "free") {
     reward(color, ball, colorIndex);
+    ball.disabled = true;
     feedbackText.textContent = color.name;
     speak(color.name);
-    window.setTimeout(newRound, 900);
+    window.setTimeout(() => {
+      choices[colorIndex] = shuffle(colors.filter((entry) => !choices.some((choice) => choice.name === entry.name)))[0] || color;
+      ball.remove();
+      renderOneBall(choices[colorIndex], colorIndex);
+    }, 720);
     return;
   }
 
