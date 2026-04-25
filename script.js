@@ -60,6 +60,16 @@ const playerTabs = document.querySelector("#playerTabs");
 const nameFields = document.querySelector("#nameFields");
 const scoreboard = document.querySelector("#scoreboard");
 const resetToday = document.querySelector("#resetToday");
+const cupStrip = document.querySelector("#cupStrip");
+const cupTurn = document.querySelector("#cupTurn");
+const cupRound = document.querySelector("#cupRound");
+const cupScores = document.querySelector("#cupScores");
+const tournamentTurns = document.querySelector("#tournamentTurns");
+const startTournament = document.querySelector("#startTournament");
+const endTournament = document.querySelector("#endTournament");
+const podiumPanel = document.querySelector("#podiumPanel");
+const podium = document.querySelector("#podium");
+const closePodium = document.querySelector("#closePodium");
 
 let mode = "find";
 let targetColor = colors[0];
@@ -72,6 +82,7 @@ let locked = false;
 let audioContext;
 let preferredVoice;
 let scoreState;
+let tournament = null;
 
 const scoreKey = "colorBallPopScoresV1";
 const playerColors = ["#e94f4f", "#3b82f6", "#35a86b"];
@@ -154,6 +165,11 @@ function activePlayer() {
   return scoreState.players.find((player) => player.id === scoreState.activePlayerId) || scoreState.players[0];
 }
 
+function activeTournamentPlayer() {
+  if (!tournament) return activePlayer();
+  return tournament.players[tournament.currentPlayerIndex] || tournament.players[0];
+}
+
 function awardStars(amount = 1) {
   const player = activePlayer();
   player.today += amount;
@@ -168,10 +184,11 @@ function renderPlayers() {
 }
 
 function renderPlayerChrome() {
-  const active = activePlayer();
+  const active = tournament ? activeTournamentPlayer() : activePlayer();
+  const score = tournament ? formatScore(active.score) : `${active.today} ★`;
   playerDot.style.setProperty("--player-color", active.color);
   playerBadgeName.textContent = active.name;
-  playerBadgeScore.textContent = `${active.today} ★`;
+  playerBadgeScore.textContent = score;
 
   playerTabs.innerHTML = "";
   scoreState.players.forEach((player) => {
@@ -203,6 +220,130 @@ function renderPlayerChrome() {
       `;
       scoreboard.appendChild(row);
     });
+}
+
+function formatScore(score) {
+  return Number.isInteger(score) ? String(score) : score.toFixed(1);
+}
+
+function startColorCup() {
+  const turnsEach = Number(tournamentTurns.value);
+  tournament = {
+    turnsEach,
+    turnIndex: 0,
+    currentPlayerIndex: 0,
+    totalTurns: turnsEach * scoreState.players.length,
+    players: scoreState.players.map((player) => ({
+      id: player.id,
+      name: player.name,
+      color: player.color,
+      score: 0,
+      correctStreak: 0,
+    })),
+  };
+
+  mode = "find";
+  modeSelect.value = "find";
+  choiceCount.value = "3";
+  choiceCountLabel.textContent = "3";
+  cupStrip.classList.remove("hidden");
+  endTournament.classList.remove("hidden");
+  settingsPanel.classList.add("hidden");
+  podiumPanel.classList.add("hidden");
+  nextTournamentTurn();
+}
+
+function endColorCup(showResults = false) {
+  if (showResults && tournament) {
+    showPodium();
+  }
+  tournament = null;
+  cupStrip.classList.add("hidden");
+  endTournament.classList.add("hidden");
+  renderPlayerChrome();
+  if (!showResults) newRound();
+}
+
+function nextTournamentTurn() {
+  if (!tournament) return;
+
+  if (tournament.turnIndex >= tournament.totalTurns) {
+    endColorCup(true);
+    return;
+  }
+
+  locked = false;
+  const player = activeTournamentPlayer();
+  scoreState.activePlayerId = player.id;
+  saveScores();
+  renderCupScores();
+  renderPlayerChrome();
+  newRound();
+}
+
+function renderCupScores() {
+  if (!tournament) return;
+  const player = activeTournamentPlayer();
+  const round = Math.floor(tournament.turnIndex / tournament.players.length) + 1;
+  cupTurn.textContent = `${player.name}'s turn`;
+  cupRound.textContent = `Round ${round} of ${tournament.turnsEach}`;
+  cupScores.innerHTML = "";
+
+  tournament.players.forEach((entry, index) => {
+    const score = document.createElement("div");
+    score.className = `cup-score${index === tournament.currentPlayerIndex ? " active" : ""}`;
+    score.style.setProperty("--player-color", entry.color);
+    score.innerHTML = `<span aria-hidden="true"></span><strong>${escapeHtml(entry.name)}</strong><em>${formatScore(entry.score)}</em>`;
+    cupScores.appendChild(score);
+  });
+}
+
+function completeTournamentTurn(wasCorrect) {
+  if (!tournament) return;
+  const player = activeTournamentPlayer();
+
+  if (wasCorrect) {
+    player.correctStreak += 1;
+    player.score += 1;
+    if (player.correctStreak > 0 && player.correctStreak % 3 === 0) {
+      player.score += 1;
+      feedbackText.textContent = `${player.name} bonus star!`;
+      speak(`${player.name} gets a bonus star!`);
+    }
+  } else {
+    player.correctStreak = 0;
+    player.score = Math.max(0, player.score - 0.5);
+  }
+
+  renderCupScores();
+  renderPlayerChrome();
+  tournament.turnIndex += 1;
+  tournament.currentPlayerIndex = (tournament.currentPlayerIndex + 1) % tournament.players.length;
+  window.setTimeout(nextTournamentTurn, wasCorrect ? 1250 : 950);
+}
+
+function showPodium() {
+  const ordered = [...tournament.players].sort((a, b) => b.score - a.score);
+  const medals = ["👑", "★", "●"];
+  const heights = ["190px", "150px", "120px"];
+  const colors = ["#ffd166", "#c8d1d8", "#d7a46f"];
+
+  podium.innerHTML = "";
+  ordered.forEach((player, index) => {
+    const place = document.createElement("div");
+    place.className = "podium-place";
+    place.style.setProperty("--height", heights[index]);
+    place.style.setProperty("--medal", colors[index]);
+    place.innerHTML = `
+      <span class="medal">${medals[index]}</span>
+      <strong>${index + 1}. ${escapeHtml(player.name)}</strong>
+      <span class="score">${formatScore(player.score)} stars</span>
+    `;
+    podium.appendChild(place);
+  });
+
+  podiumPanel.classList.remove("hidden");
+  speak(`${ordered[0].name} wins the Color Cup!`);
 }
 
 function renderNameFields() {
@@ -324,11 +465,12 @@ function playColorCue(color, start = 0) {
 }
 
 function updatePrompt() {
-  const text = modes[mode].prompt(targetColor, secondTargetColor);
+  const tournamentPlayer = tournament ? activeTournamentPlayer() : null;
+  const text = tournamentPlayer ? `${tournamentPlayer.name}, find ${targetColor.name}` : modes[mode].prompt(targetColor, secondTargetColor);
   promptEl.textContent = text;
-  feedbackText.textContent = modes[mode].feedback;
+  feedbackText.textContent = tournamentPlayer ? "One try. Choose carefully." : modes[mode].feedback;
   targetBall.style.setProperty("--target-color", `linear-gradient(135deg, ${targetColor.bright}, ${targetColor.value})`);
-  targetText.textContent = mode === "free" ? "Pop any ball" : mode === "count" ? "Pop five balls" : mode === "memory" ? `${targetColor.name}, then ${secondTargetColor.name}` : `Match ${targetColor.name}`;
+  targetText.textContent = tournamentPlayer ? `Color Cup: ${targetColor.name}` : mode === "free" ? "Pop any ball" : mode === "count" ? "Pop five balls" : mode === "memory" ? `${targetColor.name}, then ${secondTargetColor.name}` : `Match ${targetColor.name}`;
   speak(text);
   window.setTimeout(playPromptCue, 250);
 }
@@ -496,6 +638,23 @@ function gentleTryAgain(ball) {
 function handleBallTap(color, ball, colorIndex) {
   if (locked) return;
 
+  if (tournament) {
+    locked = true;
+    if (color.name === targetColor.name) {
+      reward(color, ball, colorIndex);
+      feedbackText.textContent = `Yes! +1`;
+      speak("Yes! One star!");
+      completeTournamentTurn(true);
+      return;
+    }
+
+    gentleTryAgain(ball);
+    feedbackText.textContent = `Oops. -0.5`;
+    speak("Oops. Half a star down.");
+    completeTournamentTurn(false);
+    return;
+  }
+
   if (mode === "free") {
     reward(color, ball, colorIndex);
     awardStars(1);
@@ -608,6 +767,7 @@ function handleBasketTap(color, basket, ball, colorIndex = 0) {
 }
 
 modeSelect.addEventListener("change", () => {
+  if (tournament) return;
   mode = modeSelect.value;
   newRound();
 });
@@ -631,6 +791,12 @@ resetToday.addEventListener("click", () => {
   });
   saveScores();
   renderPlayerChrome();
+});
+startTournament.addEventListener("click", startColorCup);
+endTournament.addEventListener("click", () => endColorCup(false));
+closePodium.addEventListener("click", () => {
+  podiumPanel.classList.add("hidden");
+  settingsPanel.classList.remove("hidden");
 });
 if ("speechSynthesis" in window) {
   window.speechSynthesis.onvoiceschanged = () => {
