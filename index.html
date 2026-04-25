@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Color Ball Pop</title>
-    <link rel="stylesheet" href="styles.css?v=1" />
+    <link rel="stylesheet" href="styles.css?v=2" />
   </head>
   <body>
     <main class="app" aria-live="polite">
@@ -25,12 +25,9 @@
         </div>
       </header>
 
-      <section class="mode-strip" aria-label="Game modes">
-        <button class="mode-button active" type="button" data-mode="find">Find</button>
-        <button class="mode-button" type="button" data-mode="free">Pop</button>
-        <button class="mode-button" type="button" data-mode="sort">Sort</button>
-        <button class="mode-button" type="button" data-mode="count">Count</button>
-        <button class="mode-button" type="button" data-mode="memory">Memory</button>
+      <section class="target-strip" id="targetStrip" aria-label="Target color">
+        <div class="target-ball" id="targetBall" aria-hidden="true"></div>
+        <p id="targetText">Find the matching ball</p>
       </section>
 
       <section class="play-area" id="playArea">
@@ -56,8 +53,18 @@
           <span id="choiceCountLabel">3</span>
         </label>
         <label>
+          Learning mode
+          <select id="modeSelect">
+            <option value="find">Find a color</option>
+            <option value="free">Free pop play</option>
+            <option value="sort">Sort into baskets</option>
+            <option value="count">Count to five</option>
+            <option value="memory">Two-color memory</option>
+          </select>
+        </label>
+        <label>
           Voice prompts
-          <input id="voiceToggle" type="checkbox" checked />
+          <input id="voiceToggle" type="checkbox" />
         </label>
         <label>
           Motion
@@ -66,6 +73,6 @@
       </div>
     </section>
 
-    <script src="script.js?v=1"></script>
+    <script src="script.js?v=2"></script>
   </body>
 </html>
