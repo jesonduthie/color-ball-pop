@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Color Ball Pop</title>
+    <link rel="stylesheet" href="styles.css?v=1" />
+  </head>
+  <body>
+    <main class="app" aria-live="polite">
+      <div class="celebration" id="celebration" aria-hidden="true"></div>
+
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Color Ball Pop</p>
+          <h1 id="prompt">Tap a ball</h1>
+        </div>
+        <div class="top-actions">
+          <button class="icon-button" id="repeatButton" type="button" aria-label="Repeat prompt">
+            <span aria-hidden="true">🔊</span>
+          </button>
+          <button class="icon-button parent-button" id="parentButton" type="button" aria-label="Parent settings">
+            <span aria-hidden="true">⚙</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="mode-strip" aria-label="Game modes">
+        <button class="mode-button active" type="button" data-mode="find">Find</button>
+        <button class="mode-button" type="button" data-mode="free">Pop</button>
+        <button class="mode-button" type="button" data-mode="sort">Sort</button>
+        <button class="mode-button" type="button" data-mode="count">Count</button>
+        <button class="mode-button" type="button" data-mode="memory">Memory</button>
+      </section>
+
+      <section class="play-area" id="playArea">
+        <div class="basket-row hidden" id="basketRow" aria-label="Color baskets"></div>
+        <div class="ball-stage" id="ballStage" aria-label="Ball play area"></div>
+      </section>
+
+      <section class="feedback" aria-label="Game feedback">
+        <div class="sticker" id="sticker" aria-hidden="true">🙂</div>
+        <p id="feedbackText">Listen, then pop.</p>
+      </section>
+    </main>
+
+    <section class="settings-panel hidden" id="settingsPanel" aria-label="Parent settings">
+      <div class="settings-card">
+        <div class="settings-head">
+          <h2>Parent Settings</h2>
+          <button class="close-button" id="closeSettings" type="button" aria-label="Close settings">×</button>
+        </div>
+        <label>
+          Balls on screen
+          <input id="choiceCount" type="range" min="2" max="5" value="3" />
+          <span id="choiceCountLabel">3</span>
+        </label>
+        <label>
+          Voice prompts
+          <input id="voiceToggle" type="checkbox" checked />
+        </label>
+        <label>
+          Motion
+          <input id="motionToggle" type="checkbox" checked />
+        </label>
+      </div>
+    </section>
+
+    <script src="script.js?v=1"></script>
+  </body>
+</html>
