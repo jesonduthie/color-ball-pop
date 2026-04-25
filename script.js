@@ -11,7 +11,7 @@ const modes = {
   find: {
     name: "Find",
     prompt: (color) => `Find ${color.name}`,
-    feedback: "Listen, then pop.",
+    feedback: "Match the color.",
   },
   free: {
     name: "Pop",
@@ -21,7 +21,7 @@ const modes = {
   sort: {
     name: "Sort",
     prompt: (color) => `Put ${color.name} away`,
-    feedback: "Tap the matching basket.",
+    feedback: "Choose the matching basket.",
   },
   count: {
     name: "Count",
@@ -41,12 +41,14 @@ const promptEl = document.querySelector("#prompt");
 const feedbackText = document.querySelector("#feedbackText");
 const sticker = document.querySelector("#sticker");
 const repeatButton = document.querySelector("#repeatButton");
-const modeButtons = [...document.querySelectorAll(".mode-button")];
+const targetBall = document.querySelector("#targetBall");
+const targetText = document.querySelector("#targetText");
 const settingsPanel = document.querySelector("#settingsPanel");
 const parentButton = document.querySelector("#parentButton");
 const closeSettings = document.querySelector("#closeSettings");
 const choiceCount = document.querySelector("#choiceCount");
 const choiceCountLabel = document.querySelector("#choiceCountLabel");
+const modeSelect = document.querySelector("#modeSelect");
 const voiceToggle = document.querySelector("#voiceToggle");
 const motionToggle = document.querySelector("#motionToggle");
 const celebration = document.querySelector("#celebration");
@@ -113,21 +115,46 @@ function playTone(frequency, start, duration, type = "sine", gain = 0.12) {
 
 function playPopSound(colorIndex = 0) {
   const base = 360 + colorIndex * 45;
-  playTone(base, 0, 0.08, "sine", 0.1);
-  playTone(base * 1.45, 0.08, 0.12, "triangle", 0.08);
+  playTone(base, 0, 0.06, "sine", 0.08);
+  playTone(base * 1.5, 0.06, 0.1, "triangle", 0.07);
 }
 
 function playHappySound() {
-  [440, 554, 659, 880].forEach((tone, index) => {
-    playTone(tone, index * 0.08, 0.12, "triangle", 0.08);
+  [523, 659, 784, 1046].forEach((tone, index) => {
+    playTone(tone, index * 0.075, 0.13, "triangle", 0.07);
   });
+}
+
+function playPromptCue() {
+  if (mode === "count") {
+    [392, 494, 587, 784, 988].forEach((tone, index) => playTone(tone, index * 0.08, 0.08, "sine", 0.05));
+    return;
+  }
+
+  if (mode === "memory") {
+    playColorCue(targetColor, 0);
+    playColorCue(secondTargetColor, 0.42);
+    return;
+  }
+
+  playColorCue(targetColor, 0);
+}
+
+function playColorCue(color, start = 0) {
+  const index = colors.findIndex((entry) => entry.name === color.name);
+  const base = 330 + index * 72;
+  playTone(base, start, 0.14, "sine", 0.06);
+  playTone(base * 1.25, start + 0.12, 0.16, "triangle", 0.055);
 }
 
 function updatePrompt() {
   const text = modes[mode].prompt(targetColor, secondTargetColor);
   promptEl.textContent = text;
   feedbackText.textContent = modes[mode].feedback;
+  targetBall.style.setProperty("--target-color", `linear-gradient(135deg, ${targetColor.bright}, ${targetColor.value})`);
+  targetText.textContent = mode === "free" ? "Pop any ball" : mode === "count" ? "Pop five balls" : mode === "memory" ? `${targetColor.name}, then ${secondTargetColor.name}` : `Match ${targetColor.name}`;
   speak(text);
+  window.setTimeout(playPromptCue, 250);
 }
 
 function pickChoices() {
@@ -160,6 +187,7 @@ function renderBalls() {
     ball.style.setProperty("--speed", `${2.4 + index * 0.35}s`);
     ball.innerHTML = `<span class="ball-label">${mode === "free" ? color.name : ""}</span>`;
     ball.addEventListener("click", () => handleBallTap(color, ball, index));
+    ball.addEventListener("pointerdown", (event) => startDrag(event, color, ball, index));
     ballStage.appendChild(ball);
   });
 }
@@ -179,6 +207,48 @@ function renderBaskets() {
     basket.textContent = color.name;
     basket.addEventListener("click", () => handleBasketTap(color, basket));
     basketRow.appendChild(basket);
+  });
+}
+
+function startDrag(event, color, ball, colorIndex) {
+  if (mode !== "sort" || locked) return;
+  event.preventDefault();
+  ball.setPointerCapture(event.pointerId);
+  ball.style.zIndex = "3";
+  moveBallToPointer(event, ball);
+
+  const move = (moveEvent) => moveBallToPointer(moveEvent, ball);
+  const end = (endEvent) => {
+    ball.releasePointerCapture(endEvent.pointerId);
+    ball.removeEventListener("pointermove", move);
+    ball.removeEventListener("pointerup", end);
+    ball.removeEventListener("pointercancel", end);
+    const basket = getBasketAtPoint(endEvent.clientX, endEvent.clientY);
+    if (basket) {
+      handleBasketTap(color, basket, ball, colorIndex);
+      return;
+    }
+    ball.style.zIndex = "";
+    renderBalls();
+  };
+
+  ball.addEventListener("pointermove", move);
+  ball.addEventListener("pointerup", end);
+  ball.addEventListener("pointercancel", end);
+}
+
+function moveBallToPointer(event, ball) {
+  const stageRect = ballStage.getBoundingClientRect();
+  const x = ((event.clientX - stageRect.left) / stageRect.width) * 100;
+  const y = ((event.clientY - stageRect.top) / stageRect.height) * 100;
+  ball.style.setProperty("--x", `${Math.max(10, Math.min(90, x))}%`);
+  ball.style.setProperty("--y", `${Math.max(12, Math.min(88, y))}%`);
+}
+
+function getBasketAtPoint(x, y) {
+  return [...basketRow.querySelectorAll(".basket")].find((basket) => {
+    const rect = basket.getBoundingClientRect();
+    return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
   });
 }
 
@@ -221,6 +291,8 @@ function gentleTryAgain(ball) {
   sticker.textContent = "🙂";
   ball.classList.add("wiggle");
   feedbackText.textContent = `Try ${targetColor.name}.`;
+  playTone(220, 0, 0.11, "sine", 0.045);
+  playTone(180, 0.1, 0.14, "sine", 0.04);
   speak(`Try ${targetColor.name}.`);
   window.setTimeout(() => ball.classList.remove("wiggle"), 520);
 }
@@ -285,9 +357,9 @@ function handleBallTap(color, ball, colorIndex) {
   }
 
   if (mode === "sort") {
-    feedbackText.textContent = `Tap the ${color.name} basket.`;
+    feedbackText.textContent = `Move it to ${color.name}.`;
     targetColor = color;
-    speak(`Tap the ${color.name} basket.`);
+    updatePrompt();
     return;
   }
 
@@ -303,12 +375,17 @@ function handleBallTap(color, ball, colorIndex) {
   gentleTryAgain(ball);
 }
 
-function handleBasketTap(color, basket) {
+function handleBasketTap(color, basket, ball, colorIndex = 0) {
   if (mode !== "sort") return;
 
   if (color.name === targetColor.name) {
     basket.classList.add("hit");
+    if (ball) {
+      ball.classList.add("pop");
+      ball.disabled = true;
+    }
     sticker.textContent = "😀";
+    playPopSound(colorIndex);
     playHappySound();
     celebrate();
     feedbackText.textContent = `${color.name} basket!`;
@@ -318,20 +395,21 @@ function handleBasketTap(color, basket) {
   }
 
   basket.classList.add("hit");
+  playTone(210, 0, 0.12, "sine", 0.05);
+  playTone(170, 0.12, 0.16, "sine", 0.04);
   window.setTimeout(() => basket.classList.remove("hit"), 400);
   speak(`Try ${targetColor.name}.`);
 }
 
-modeButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    modeButtons.forEach((modeButton) => modeButton.classList.remove("active"));
-    button.classList.add("active");
-    mode = button.dataset.mode;
-    newRound();
-  });
+modeSelect.addEventListener("change", () => {
+  mode = modeSelect.value;
+  newRound();
 });
 
-repeatButton.addEventListener("click", updatePrompt);
+repeatButton.addEventListener("click", () => {
+  updatePrompt();
+  playPromptCue();
+});
 parentButton.addEventListener("click", () => settingsPanel.classList.remove("hidden"));
 closeSettings.addEventListener("click", () => settingsPanel.classList.add("hidden"));
 choiceCount.addEventListener("input", () => {
