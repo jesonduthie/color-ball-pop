@@ -87,14 +87,58 @@ h1 {
 
 .target-strip {
   min-height: 78px;
-  width: min(520px, 100%);
+  width: min(600px, 100%);
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   padding: 10px 14px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.58);
   box-shadow: 0 12px 24px rgba(47, 57, 65, 0.08);
+}
+
+.helper-ball {
+  width: clamp(52px, 8vw, 70px);
+  aspect-ratio: 1;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  position: relative;
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.82), transparent 0 18%, rgba(255, 255, 255, 0.2) 19% 30%, transparent 31%),
+    linear-gradient(135deg, #ffe37a, #f4b63f);
+  box-shadow:
+    inset -8px -10px 18px rgba(0, 0, 0, 0.13),
+    0 10px 20px rgba(47, 57, 65, 0.14);
+}
+
+.helper-ball::before,
+.helper-ball::after {
+  content: "";
+  position: absolute;
+  top: 34%;
+  width: 8px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #243038;
+}
+
+.helper-ball::before {
+  left: 32%;
+}
+
+.helper-ball::after {
+  right: 32%;
+}
+
+.helper-ball span {
+  position: absolute;
+  left: 50%;
+  bottom: 24%;
+  width: 22px;
+  height: 10px;
+  border-bottom: 4px solid #243038;
+  border-radius: 0 0 18px 18px;
+  transform: translateX(-50%);
 }
 
 .target-ball {
@@ -166,7 +210,8 @@ h1 {
 }
 
 .ball.pop {
-  animation: pop 520ms ease-out forwards;
+  pointer-events: none;
+  animation: pop 620ms cubic-bezier(0.18, 0.85, 0.24, 1) forwards;
 }
 
 .ball.wiggle {
@@ -183,24 +228,57 @@ h1 {
 .basket-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: clamp(12px, 2vw, 18px);
 }
 
 .basket {
-  min-height: 84px;
-  border: 5px solid var(--basket-color);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.62);
+  min-height: 118px;
+  border: 0;
+  border-radius: 8px 8px 22px 22px;
+  position: relative;
+  isolation: isolate;
+  background:
+    linear-gradient(90deg, transparent 0 16%, rgba(255, 255, 255, 0.32) 16% 22%, transparent 22% 38%, rgba(255, 255, 255, 0.32) 38% 44%, transparent 44% 60%, rgba(255, 255, 255, 0.32) 60% 66%, transparent 66%),
+    linear-gradient(180deg, color-mix(in srgb, var(--basket-color) 62%, white) 0%, var(--basket-color) 100%);
   color: var(--ink);
   display: grid;
   place-items: center;
+  padding-top: 28px;
   font-size: clamp(1rem, 3vw, 1.5rem);
   font-weight: 1000;
+  box-shadow:
+    inset 0 -12px 18px rgba(0, 0, 0, 0.12),
+    0 14px 24px rgba(47, 57, 65, 0.12);
   touch-action: manipulation;
 }
 
+.basket::before {
+  content: "";
+  position: absolute;
+  left: 13%;
+  right: 13%;
+  top: -20px;
+  height: 48px;
+  border: 8px solid var(--basket-color);
+  border-bottom: 0;
+  border-radius: 999px 999px 0 0;
+  z-index: -1;
+  opacity: 0.9;
+}
+
+.basket::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 16px;
+  height: 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--basket-color) 78%, white);
+  box-shadow: 0 4px 0 rgba(255, 255, 255, 0.3) inset;
+}
+
 .basket.hit {
-  background: color-mix(in srgb, var(--basket-color) 22%, white);
   transform: scale(1.03);
 }
 
@@ -332,6 +410,10 @@ h1 {
   .ball-stage {
     min-height: 420px;
   }
+
+  .basket {
+    min-height: 104px;
+  }
 }
 
 @keyframes floaty {
@@ -352,7 +434,7 @@ h1 {
 
   45% {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1.16);
+    transform: translate(-50%, -50%) scale(1.12);
   }
 
   100% {
