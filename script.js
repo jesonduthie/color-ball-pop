@@ -239,6 +239,7 @@ function handleBallTap(color, ball, colorIndex) {
   if (mode === "count") {
     countProgress += 1;
     reward(color, ball, colorIndex);
+    ball.disabled = true;
     feedbackText.textContent = `${countProgress}`;
     speak(String(countProgress));
     if (countProgress >= countGoal) {
@@ -248,6 +249,15 @@ function handleBallTap(color, ball, colorIndex) {
         speak("Five pops!");
         window.setTimeout(newRound, 1200);
       }, 500);
+      return;
+    }
+
+    const remainingBalls = [...ballStage.querySelectorAll(".ball:not(.pop)")];
+    if (remainingBalls.length === 0) {
+      window.setTimeout(() => {
+        choices = shuffle(colors).slice(0, Number(choiceCount.value));
+        renderBalls();
+      }, 560);
     }
     return;
   }
