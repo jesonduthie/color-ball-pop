@@ -62,6 +62,7 @@ let countGoal = 5;
 let countProgress = 0;
 let locked = false;
 let audioContext;
+let preferredVoice;
 
 const positions = [
   { x: 28, y: 35, size: 170 },
@@ -79,9 +80,36 @@ function speak(text) {
   if (!voiceToggle.checked || !("speechSynthesis" in window)) return;
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.rate = 0.78;
-  utterance.pitch = 1.12;
+  const voice = getPreferredVoice();
+  if (voice) utterance.voice = voice;
+  utterance.rate = 0.72;
+  utterance.pitch = 1.18;
+  utterance.volume = 0.92;
   window.speechSynthesis.speak(utterance);
+}
+
+function getPreferredVoice() {
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return preferredVoice;
+
+  const preferredNames = [
+    "Samantha",
+    "Karen",
+    "Moira",
+    "Tessa",
+    "Google UK English Female",
+    "Google US English",
+    "Microsoft Jenny",
+    "Microsoft Aria",
+  ];
+
+  preferredVoice =
+    preferredNames.map((name) => voices.find((voice) => voice.name.includes(name))).find(Boolean) ||
+    voices.find((voice) => voice.lang.startsWith("en") && /female|natural|premium/i.test(voice.name)) ||
+    voices.find((voice) => voice.lang.startsWith("en")) ||
+    voices[0];
+
+  return preferredVoice;
 }
 
 function getAudioContext() {
@@ -418,5 +446,11 @@ choiceCount.addEventListener("input", () => {
 });
 voiceToggle.addEventListener("change", updatePrompt);
 motionToggle.addEventListener("change", renderBalls);
+if ("speechSynthesis" in window) {
+  window.speechSynthesis.onvoiceschanged = () => {
+    preferredVoice = undefined;
+    getPreferredVoice();
+  };
+}
 
 newRound();
