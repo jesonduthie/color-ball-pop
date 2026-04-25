@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Color Ball Pop</title>
-    <link rel="stylesheet" href="styles.css?v=4" />
+    <link rel="stylesheet" href="styles.css?v=5" />
   </head>
   <body>
     <main class="app" aria-live="polite">
@@ -14,6 +14,11 @@
         <div>
           <p class="eyebrow">Color Ball Pop</p>
           <h1 id="prompt">Tap a ball</h1>
+          <button class="player-badge" id="playerBadge" type="button" aria-label="Current player">
+            <span id="playerDot" aria-hidden="true"></span>
+            <span id="playerBadgeName">Player 1</span>
+            <strong id="playerBadgeScore">0 ★</strong>
+          </button>
         </div>
         <div class="top-actions">
           <button class="icon-button" id="repeatButton" type="button" aria-label="Repeat prompt">
@@ -73,9 +78,17 @@
           Motion
           <input id="motionToggle" type="checkbox" checked />
         </label>
+        <section class="players-panel" aria-label="Players and scores">
+          <h3>Players</h3>
+          <div class="player-tabs" id="playerTabs"></div>
+          <div class="name-fields" id="nameFields"></div>
+          <h3>Today</h3>
+          <div class="scoreboard" id="scoreboard"></div>
+          <button class="reset-button" id="resetToday" type="button">Reset today</button>
+        </section>
       </div>
     </section>
 
-    <script src="script.js?v=4"></script>
+    <script src="script.js?v=5"></script>
   </body>
 </html>
