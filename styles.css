@@ -85,26 +85,36 @@ h1 {
   font-size: clamp(1.5rem, 4vw, 2.3rem);
 }
 
-.mode-strip {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 8px;
+.target-strip {
+  min-height: 78px;
+  width: min(520px, 100%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.58);
+  box-shadow: 0 12px 24px rgba(47, 57, 65, 0.08);
 }
 
-.mode-button {
-  min-height: 52px;
-  border: 0;
-  border-radius: 8px;
-  color: var(--ink);
-  background: rgba(255, 255, 255, 0.66);
-  font-size: clamp(0.95rem, 2.6vw, 1.25rem);
+.target-ball {
+  width: clamp(54px, 9vw, 76px);
+  aspect-ratio: 1;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.78), transparent 0 18%, rgba(255, 255, 255, 0.16) 19% 30%, transparent 31%),
+    var(--target-color);
+  box-shadow:
+    inset -8px -10px 18px rgba(0, 0, 0, 0.16),
+    0 10px 20px rgba(47, 57, 65, 0.16);
+}
+
+.target-strip p {
+  margin: 0;
+  color: var(--muted);
+  font-size: clamp(1.05rem, 3vw, 1.5rem);
   font-weight: 900;
-  box-shadow: 0 8px 18px rgba(47, 57, 65, 0.08);
-}
-
-.mode-button.active {
-  color: #fff;
-  background: #243038;
 }
 
 .play-area {
@@ -144,6 +154,7 @@ h1 {
   place-items: center;
   transform: translate(-50%, -50%);
   touch-action: manipulation;
+  user-select: none;
 }
 
 .motion-on .ball {
@@ -185,10 +196,12 @@ h1 {
   place-items: center;
   font-size: clamp(1rem, 3vw, 1.5rem);
   font-weight: 1000;
+  touch-action: manipulation;
 }
 
 .basket.hit {
   background: color-mix(in srgb, var(--basket-color) 22%, white);
+  transform: scale(1.03);
 }
 
 .feedback {
@@ -279,6 +292,16 @@ h1 {
   width: 150px;
 }
 
+.settings-card select {
+  min-width: 190px;
+  border: 2px solid rgba(36, 48, 56, 0.14);
+  border-radius: 8px;
+  background: #fff;
+  padding: 10px 12px;
+  color: var(--ink);
+  font-weight: 900;
+}
+
 .close-button {
   width: 44px;
   aspect-ratio: 1;
@@ -302,10 +325,8 @@ h1 {
     min-height: 100svh;
   }
 
-  .mode-strip {
-    grid-template-columns: repeat(5, minmax(58px, 1fr));
-    overflow-x: auto;
-    padding-bottom: 3px;
+  .target-strip {
+    width: 100%;
   }
 
   .ball-stage {
