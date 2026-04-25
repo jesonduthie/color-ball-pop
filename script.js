@@ -46,12 +46,20 @@ const targetText = document.querySelector("#targetText");
 const settingsPanel = document.querySelector("#settingsPanel");
 const parentButton = document.querySelector("#parentButton");
 const closeSettings = document.querySelector("#closeSettings");
+const playerBadge = document.querySelector("#playerBadge");
+const playerDot = document.querySelector("#playerDot");
+const playerBadgeName = document.querySelector("#playerBadgeName");
+const playerBadgeScore = document.querySelector("#playerBadgeScore");
 const choiceCount = document.querySelector("#choiceCount");
 const choiceCountLabel = document.querySelector("#choiceCountLabel");
 const modeSelect = document.querySelector("#modeSelect");
 const voiceToggle = document.querySelector("#voiceToggle");
 const motionToggle = document.querySelector("#motionToggle");
 const celebration = document.querySelector("#celebration");
+const playerTabs = document.querySelector("#playerTabs");
+const nameFields = document.querySelector("#nameFields");
+const scoreboard = document.querySelector("#scoreboard");
+const resetToday = document.querySelector("#resetToday");
 
 let mode = "find";
 let targetColor = colors[0];
@@ -63,6 +71,15 @@ let countProgress = 0;
 let locked = false;
 let audioContext;
 let preferredVoice;
+let scoreState;
+
+const scoreKey = "colorBallPopScoresV1";
+const playerColors = ["#e94f4f", "#3b82f6", "#35a86b"];
+const defaultPlayers = [
+  { id: "p1", name: "Player 1", color: playerColors[0], today: 0, total: 0 },
+  { id: "p2", name: "Player 2", color: playerColors[1], today: 0, total: 0 },
+  { id: "p3", name: "Player 3", color: playerColors[2], today: 0, total: 0 },
+];
 
 const positionsByCount = {
   2: [
@@ -91,6 +108,120 @@ const positionsByCount = {
 
 function shuffle(items) {
   return [...items].sort(() => Math.random() - 0.5);
+}
+
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function loadScores() {
+  let saved;
+  try {
+    saved = JSON.parse(localStorage.getItem(scoreKey) || "null");
+  } catch {
+    saved = null;
+  }
+  const today = todayKey();
+
+  if (!saved || !Array.isArray(saved.players)) {
+    return { activePlayerId: "p1", date: today, players: defaultPlayers.map((player) => ({ ...player })) };
+  }
+
+  const players = defaultPlayers.map((fallback) => {
+    const savedPlayer = saved.players.find((player) => player.id === fallback.id);
+    return { ...fallback, ...savedPlayer, today: saved.date === today ? savedPlayer?.today || 0 : 0 };
+  });
+
+  return {
+    activePlayerId: saved.activePlayerId || "p1",
+    date: today,
+    players,
+  };
+}
+
+function escapeHtml(value) {
+  return value.replace(/[&<>"']/g, (char) => {
+    const entities = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" };
+    return entities[char];
+  });
+}
+
+function saveScores() {
+  localStorage.setItem(scoreKey, JSON.stringify(scoreState));
+}
+
+function activePlayer() {
+  return scoreState.players.find((player) => player.id === scoreState.activePlayerId) || scoreState.players[0];
+}
+
+function awardStars(amount = 1) {
+  const player = activePlayer();
+  player.today += amount;
+  player.total += amount;
+  saveScores();
+  renderPlayers();
+}
+
+function renderPlayers() {
+  renderPlayerChrome();
+  renderNameFields();
+}
+
+function renderPlayerChrome() {
+  const active = activePlayer();
+  playerDot.style.setProperty("--player-color", active.color);
+  playerBadgeName.textContent = active.name;
+  playerBadgeScore.textContent = `${active.today} ★`;
+
+  playerTabs.innerHTML = "";
+  scoreState.players.forEach((player) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `player-tab${player.id === scoreState.activePlayerId ? " active" : ""}`;
+    button.style.setProperty("--player-color", player.color);
+    button.innerHTML = `<span aria-hidden="true"></span><strong>${escapeHtml(player.name)}</strong>`;
+    button.addEventListener("click", () => {
+      scoreState.activePlayerId = player.id;
+      saveScores();
+      renderPlayerChrome();
+    });
+    playerTabs.appendChild(button);
+  });
+
+  scoreboard.innerHTML = "";
+  [...scoreState.players]
+    .sort((a, b) => b.today - a.today || b.total - a.total)
+    .forEach((player, index) => {
+      const row = document.createElement("div");
+      row.className = "score-row";
+      row.style.setProperty("--player-color", player.color);
+      row.innerHTML = `
+        <span class="rank">${index + 1}</span>
+        <span>${escapeHtml(player.name)}</span>
+        <strong>${player.today} ★</strong>
+        <span class="all-time">${player.total} total</span>
+      `;
+      scoreboard.appendChild(row);
+    });
+}
+
+function renderNameFields() {
+  nameFields.innerHTML = "";
+  scoreState.players.forEach((player, index) => {
+    const label = document.createElement("label");
+    label.className = "name-field";
+    label.innerHTML = `
+      <span>Kid ${index + 1} name</span>
+      <input value="${escapeHtml(player.name)}" maxlength="16" aria-label="Kid ${index + 1} name" />
+    `;
+    const input = label.querySelector("input");
+    input.addEventListener("input", () => {
+      player.name = input.value.trim() || `Player ${index + 1}`;
+      saveScores();
+      renderPlayerChrome();
+    });
+    nameFields.appendChild(label);
+  });
 }
 
 function speak(text) {
@@ -367,6 +498,7 @@ function handleBallTap(color, ball, colorIndex) {
 
   if (mode === "free") {
     reward(color, ball, colorIndex);
+    awardStars(1);
     ball.disabled = true;
     feedbackText.textContent = color.name;
     speak(color.name);
@@ -381,6 +513,7 @@ function handleBallTap(color, ball, colorIndex) {
   if (mode === "count") {
     countProgress += 1;
     reward(color, ball, colorIndex);
+    awardStars(1);
     ball.disabled = true;
     feedbackText.textContent = `${countProgress}`;
     speak(String(countProgress));
@@ -412,6 +545,7 @@ function handleBallTap(color, ball, colorIndex) {
     }
 
     reward(color, ball, colorIndex);
+    awardStars(memoryStep === 1 ? 2 : 1);
     memoryStep += 1;
     if (memoryStep === 1) {
       feedbackText.textContent = `Now ${secondTargetColor.name}.`;
@@ -436,6 +570,7 @@ function handleBallTap(color, ball, colorIndex) {
   if (color.name === targetColor.name) {
     locked = true;
     reward(color, ball, colorIndex);
+    awardStars(1);
     feedbackText.textContent = `Yes, ${color.name}!`;
     speak(`Yes, ${color.name}!`);
     window.setTimeout(newRound, 1300);
@@ -458,6 +593,7 @@ function handleBasketTap(color, basket, ball, colorIndex = 0) {
     playPopSound(colorIndex);
     playHappySound();
     celebrate();
+    awardStars(1);
     feedbackText.textContent = `${color.name} basket!`;
     speak(`${color.name} basket!`);
     window.setTimeout(newRound, 1200);
@@ -481,6 +617,7 @@ repeatButton.addEventListener("click", () => {
   playPromptCue();
 });
 parentButton.addEventListener("click", () => settingsPanel.classList.remove("hidden"));
+playerBadge.addEventListener("click", () => settingsPanel.classList.remove("hidden"));
 closeSettings.addEventListener("click", () => settingsPanel.classList.add("hidden"));
 choiceCount.addEventListener("input", () => {
   choiceCountLabel.textContent = choiceCount.value;
@@ -488,6 +625,13 @@ choiceCount.addEventListener("input", () => {
 });
 voiceToggle.addEventListener("change", updatePrompt);
 motionToggle.addEventListener("change", renderBalls);
+resetToday.addEventListener("click", () => {
+  scoreState.players.forEach((player) => {
+    player.today = 0;
+  });
+  saveScores();
+  renderPlayerChrome();
+});
 if ("speechSynthesis" in window) {
   window.speechSynthesis.onvoiceschanged = () => {
     preferredVoice = undefined;
@@ -495,4 +639,6 @@ if ("speechSynthesis" in window) {
   };
 }
 
+scoreState = loadScores();
+renderPlayers();
 newRound();
